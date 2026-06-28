@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<title>塔罗的海</title>
+<style>
+:root{--bg:#1a1a2e;--card-bg:#16213e;--primary:#6C5CE7;--light:#A29BFE;--gold:#FDCA40;--text:#f0f0f0;--sub:#b2bec3}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,'PingFang SC',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+.tab-bar{display:flex;border-bottom:1px solid rgba(108,92,231,.2);position:sticky;top:0;z-index:100;background:var(--bg)}
+.tab-btn{flex:1;text-align:center;padding:16px 0;font-size:15px;font-weight:600;cursor:pointer;color:var(--sub);border-bottom:2px solid transparent;transition:all .2s}
+.tab-btn.active{color:var(--light);border-bottom-color:var(--primary)}
+.page{display:none;padding:20px 16px 80px}
+.page.active{display:block}
+
+/* 每日抽牌 */
+.undrawn{display:flex;flex-direction:column;align-items:center;padding-top:60px}
+.moon{font-size:70px;margin-bottom:12px}
+.moon-title{font-size:26px;font-weight:700;color:var(--light)}
+.moon-sub{font-size:14px;color:var(--sub);margin:8px 0 40px;text-align:center;white-space:pre-line;line-height:1.5}
+.card-back{width:260px;height:380px;background:linear-gradient(135deg,#2d1b69,var(--primary),#2d1b69);border-radius:20px;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 8px 32px rgba(108,92,231,.4);transition:transform .2s}
+.card-back:active{transform:scale(.96)}
+.card-back-star{font-size:50px;color:var(--gold)}
+.card-back-text{font-size:20px;color:rgba(255,255,255,.8);font-weight:600;margin-top:10px}
+.hint{margin-top:30px;font-size:13px;color:var(--sub)}
+
+.card-face-box{background:var(--card-bg);border-radius:20px;padding:40px 24px;text-align:center;border:1px solid rgba(108,92,231,.3);opacity:0;transform:rotateY(90deg);transition:all .6s ease-out}
+.card-face-box.show{opacity:1;transform:rotateY(0)}
+.card-emoji{font-size:70px}
+.card-name{font-size:28px;font-weight:800;color:var(--light);margin-top:10px}
+.card-name-en{font-size:16px;color:var(--sub);margin-top:4px}
+.card-divider{width:50px;height:2px;background:var(--primary);margin:16px auto;border-radius:2px}
+.card-daily{font-size:15px;line-height:1.7;color:#ccc}
+
+.info-block{margin-top:24px}
+.keywords{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px;justify-content:center}
+.keyword{padding:6px 14px;border-radius:16px;background:rgba(108,92,231,.2);color:var(--light);font-size:13px}
+.meaning{padding:18px;border-radius:14px;margin-bottom:12px;line-height:1.6;font-size:14px}
+.meaning.up{background:rgba(0,184,148,.08);border-left:4px solid #00B894}
+.meaning.rev{background:rgba(255,107,53,.08);border-left:4px solid #FF6B35}
+.meaning-label{font-weight:700;font-size:16px;margin-bottom:8px;display:block}
+.meta-row{display:flex;gap:16px;margin:12px 0;flex-wrap:wrap;font-size:13px;color:var(--sub)}
+.note-area{margin-top:20px}
+.note-area label{font-size:15px;font-weight:600}
+.note-area textarea{width:100%;height:80px;padding:12px;background:var(--card-bg);border:1px solid rgba(108,92,231,.2);border-radius:12px;color:var(--text);font-size:14px;margin-top:8px;resize:vertical}
+.btn{display:block;width:100%;padding:14px;border-radius:24px;border:none;font-size:16px;font-weight:700;cursor:pointer;margin-top:16px;text-align:center}
+.btn-primary{background:var(--primary);color:#fff}
+.btn-ghost{background:transparent;color:var(--sub);font-weight:400;font-size:14px}
+
+/* 模式切换 */
+.mode-toggle{display:flex;gap:8px;margin-bottom:16px}
+.mode-btn{flex:1;text-align:center;padding:10px;border-radius:16px;font-size:14px;font-weight:600;cursor:pointer;color:var(--sub);background:var(--card-bg)}
+.mode-btn.active{background:var(--primary);color:#fff}
+
+/* 问答模式 */
+.ask-input{width:100%;height:80px;padding:14px;background:var(--card-bg);border:1px solid rgba(108,92,231,.2);border-radius:14px;color:var(--text);font-size:15px;margin:12px 0}
+.ask-draw{width:200px;height:200px;background:linear-gradient(135deg,#2d1b69,var(--primary),#2d1b69);border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;margin:30px auto;box-shadow:0 8px 32px rgba(108,92,231,.5)}
+.ai-loading{text-align:center;padding:24px;color:var(--light);font-size:15px}
+.ai-reading{background:linear-gradient(135deg,rgba(108,92,231,.1),rgba(108,92,231,.05));border-radius:14px;padding:20px;margin-top:16px;border:1px solid rgba(108,92,231,.3);font-size:14px;line-height:1.8;color:#e0e0e0}
+.ai-label{font-size:14px;font-weight:700;color:var(--light);margin-bottom:8px}
+
+/* 牌库 */
+.filter-row{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+.filter-btn{padding:8px 16px;border-radius:16px;font-size:13px;cursor:pointer;color:var(--sub);background:var(--card-bg);border:none}
+.filter-btn.active{background:var(--primary);color:#fff}
+.card-list-item{display:flex;align-items:center;gap:14px;padding:16px;background:var(--card-bg);border-radius:14px;margin-bottom:8px;cursor:pointer}
+.card-list-item:active{background:rgba(108,92,231,.1)}
+.card-list-emoji{font-size:40px;width:50px;text-align:center;flex-shrink:0}
+.card-list-info{flex:1;overflow:hidden}
+.card-list-name{font-size:16px;font-weight:600}
+.card-list-en{font-size:13px;color:var(--sub);margin-top:2px}
+.card-list-arrow{font-size:24px;color:var(--sub)}
+.list-count{text-align:center;padding:16px;color:var(--sub);font-size:13px}
+
+/* 记录 */
+.record-item{display:flex;align-items:center;gap:14px;padding:16px;background:var(--card-bg);border-radius:14px;margin-bottom:8px;cursor:pointer;position:relative;overflow:hidden}
+.record-item:active{background:rgba(108,92,231,.1)}
+.record-emoji{font-size:36px;width:44px;text-align:center}
+.record-info{flex:1;overflow:hidden}
+.record-name{font-size:16px;font-weight:600}
+.record-note{font-size:13px;color:var(--gold);margin-top:2px}
+.record-time{font-size:12px;color:var(--sub);margin-top:2px}
+.record-delete{position:absolute;right:0;top:0;height:100%;width:100px;background:#FF6B35;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:600;cursor:pointer}
+.record-content{width:100%;transition:transform .2s}
+.record-content.swiped{transform:translateX(-100px)}
+.export-btn{position:fixed;bottom:140px;right:28px;width:56px;height:56px;background:var(--card-bg);border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 4px 16px rgba(0,0,0,.3);border:1px solid rgba(108,92,231,.3);z-index:50;font-size:24px}
+.add-btn{position:fixed;bottom:60px;right:28px;width:64px;height:64px;background:var(--primary);border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 8px 24px rgba(108,92,231,.4);z-index:50;font-size:32px;color:#fff;font-weight:300}
+.date-group{margin:0 0 16px}
+.date-header{font-size:15px;font-weight:700;color:var(--light);margin-bottom:8px;padding-left:4px}
+.empty{text-align:center;padding-top:120px;font-size:18px;color:var(--sub)}
+.empty-emoji{font-size:60px;margin-bottom:12px}
+
+/* 弹窗 */
+.modal-overlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.85);z-index:200;align-items:center;justify-content:center}
+.modal-overlay.show{display:flex}
+.modal{background:var(--card-bg);border-radius:20px;padding:28px;width:90%;max-width:500px;max-height:80vh;overflow-y:auto}
+.modal h3{color:var(--light);margin-bottom:16px;text-align:center}
+.modal .close{text-align:center;margin-top:16px;color:var(--sub);cursor:pointer;font-size:14px}
+.picker-card{padding:12px;background:var(--bg);border-radius:10px;margin-bottom:6px;display:flex;align-items:center;gap:10px;cursor:pointer;font-size:15px}
+.picker-card:active{background:rgba(108,92,231,.15)}
+.picker-emoji{font-size:30px;width:36px;text-align:center}
+.picker-name{flex:1}
+
+@media(min-width:768px){
+  body{max-width:500px;margin:0 auto}
+  .tab-bar{max-width:500px}
+  .add-btn,.export-btn{right:calc(50% - 230px)}
+}
+</style>
+</head>
+<body>
+
+<div id="loading" style="position:fixed;top:0;left:0;right:0;bottom:0;background:var(--bg);z-index:9999;display:flex;align-items:center;justify-content:center;flex-direction:column">
+  <div style="font-size:60px">🔮</div>
+  <div style="color:var(--light);margin-top:16px;font-size:16px">塔罗的海</div>
+</div>
+<div class="tab-bar">
+  <div class="tab-btn active" data-tab="daily">🌙 每日一牌</div>
+  <div class="tab-btn" data-tab="ask">🔮 塔罗问答</div>
+  <div class="tab-btn" data-tab="cards">📚 牌库</div>
+  <div class="tab-btn" data-tab="log">📝 记录</div>
+</div>
+
+<!-- ===== 每日一牌 ===== -->
+<div class="page active" id="page-daily"></div>
+
+<!-- ===== 塔罗问答 ===== -->
+<div class="page" id="page-ask"></div>
+
+<!-- ===== 牌库 ===== -->
+<div class="page" id="page-cards"></div>
+
+<!-- ===== 记录 ===== -->
+<div class="page" id="page-log"></div>
+
+<script src="data.js"></script>
+<script>
+// ===== 全局状态 =====
+let currentTab = 'daily';
+let drawnCard = null, drawnRevealed = false;
+let askCard = null, askReversed = false, aiText = '', aiLoading = false;
+let arcanaFilter = 'all', suitFilter = 'all';
+let noteText = '', saved = false;
+let history = JSON.parse(localStorage.getItem('tarot_history') || '[]');
+let swipeId = '';
+
+// ===== Tab 切换 =====
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    currentTab = btn.dataset.tab;
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.getElementById('page-' + currentTab).classList.add('active');
+    if (currentTab === 'daily') renderDaily();
+    if (currentTab === 'ask') renderAsk();
+    if (currentTab === 'cards') renderCards();
+    if (currentTab === 'log') renderLog();
+  });
+});
+
+// ===== 每日一牌 =====
+function renderDaily() {
+  const el = document.getElementById('page-daily');
+  if (!drawnCard) {
+    el.innerHTML = `<div class="undrawn">
+      <div class="moon">🌙</div>
+      <div class="moon-title">塔罗每日一牌</div>
+      <div class="moon-sub">闭上眼睛，深呼吸\n然后抽一张属于你今天的牌</div>
+      <div class="card-back" onclick="drawCard()">
+        <div style="text-align:center">
+          <div class="card-back-star">★</div>
+          <div class="card-back-text">点我抽牌</div>
+        </div>
+      </div>
+      <div class="hint">点击牌背，宇宙会给你答案 ✨</div>
+    </div>`;
+  } else {
+    const c = drawnCard;
+    el.innerHTML = `
+      <div class="card-face-box ${drawnRevealed?'show':''}">
+        <div class="card-emoji">${c.emoji}</div>
+        <div class="card-name">${c.name_zh}</div>
+        <div class="card-name-en">${c.name_en}</div>
+        <div class="card-divider"></div>
+        <div class="card-daily">${c.daily_zh}</div>
+      </div>
+      ${drawnRevealed ? `
+      <div class="info-block">
+        <div class="keywords">${c.keywords_zh.map(k=>`<span class="keyword">${k}</span>`).join('')}</div>
+        <div class="meaning up"><span class="meaning-label">✨ 正位</span>${c.upright}</div>
+        <div class="meaning rev"><span class="meaning-label">🔄 逆位</span>${c.reversed}</div>
+        ${c.element?`<div class="meta-row"><span>🌿 ${c.element}</span>${c.planet?`<span>🪐 ${c.planet}</span>`:''}<span>${c.arcana==='major'?'大阿卡纳':'小阿卡纳'}</span></div>`:''}
+        <div class="note-area">
+          <label>📝 我的感悟</label>
+          <textarea id="dailyNote" placeholder="这张牌让我想到..." oninput="noteText=this.value">${noteText}</textarea>
+        </div>
+        <button class="btn btn-primary" onclick="saveRecord(drawnCard,noteText)">${saved?'✅ 已保存':'保存到记录'}</button>
+        <button class="btn btn-ghost" onclick="drawnCard=null;drawnRevealed=false;noteText='';saved=false;renderDaily();renderLog()">🔄 再抽一张</button>
+      </div>`:''}`;
+  }
+}
+
+function drawCard() {
+  drawnCard = allCards[Math.floor(Math.random()*allCards.length)];
+  drawnRevealed = false; saved = false; noteText = '';
+  renderDaily();
+  setTimeout(() => { drawnRevealed = true; renderDaily(); }, 500);
+}
+
+function saveRecord(card, note) {
+  const rec = { id: Date.now(), cardId: card.id, cardName: card.name_zh, cardNameEn: card.name_en,
+    emoji: card.emoji, date: new Date().toISOString().slice(0,10),
+    time: new Date().toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'}), note: note||'' };
+  history = [rec, ...history].slice(0,365);
+  localStorage.setItem('tarot_history', JSON.stringify(history));
+  saved = true; renderDaily(); renderLog();
+}
+
+// ===== 塔罗问答 =====
+function renderAsk() {
+  const el = document.getElementById('page-ask');
+  if (!askCard) {
+    el.innerHTML = `
+      <div class="undrawn">
+        <div class="moon">🔮</div>
+        <div class="moon-title">一张牌 · 给你答案</div>
+        <div class="moon-sub">默念你的心事，然后抽一张</div>
+        <textarea class="ask-input" id="askQuestion" placeholder="默念你的心事，写在这里..."></textarea>
+        <div class="ask-draw" onclick="askDraw()">
+          <div style="text-align:center">
+            <div style="font-size:44px;color:var(--gold)">★</div>
+            <div style="font-size:20px;color:rgba(255,255,255,.8);font-weight:600;margin-top:6px">开始抽牌</div>
+          </div>
+        </div>
+      </div>`;
+  } else {
+    const c = askCard;
+    const rev = askReversed;
+    const q = document.getElementById('askQuestion')?.value || '';
+    el.innerHTML = `
+      ${q?`<div style="text-align:center;color:var(--sub);font-size:14px;margin-bottom:16px;font-style:italic">"${q}"</div>`:''}
+      <div class="card-face-box show" style="margin-bottom:16px">
+        <div class="card-emoji">${c.emoji}</div>
+        <div class="card-name">${c.name_zh}</div>
+        <div class="card-name-en">${c.name_en} · ${rev?'逆位':'正位'}</div>
+        <div class="card-divider"></div>
+        <div class="meaning ${rev?'rev':'up'}" style="text-align:left;margin-top:12px">
+          <span class="meaning-label">${rev?'🔄 逆位释义':'✨ 正位释义'}</span>
+          <span style="font-size:14px;line-height:1.6;color:#ccc">${rev?c.reversed:c.upright}</span>
+        </div>
+        <div class="keywords" style="margin-top:10px">${c.keywords_zh.map(k=>`<span class="keyword">${k}</span>`).join('')}</div>
+      </div>
+      ${aiLoading ? `<div class="ai-loading">🔮 AI 正在为你解读...</div>` : ''}
+      ${aiText ? `<div class="ai-reading"><div class="ai-label">🤖 AI 塔罗解读</div>${aiText}</div>` : ''}
+      <button class="btn btn-primary" onclick="saveRecord(askCard,(q?'「'+q+'」 — ':'')+askCard.name_zh+(askReversed?'(逆位)':'(正位)')+'\\n🔮 AI：'+aiText.slice(0,150))">💾 保存</button>
+      <button class="btn btn-ghost" onclick="askCard=null;aiText='';aiLoading=false;renderAsk();renderLog()">🔄 再问一次</button>`;
+  }
+}
+
+function askDraw() {
+  const q = document.getElementById('askQuestion')?.value || '';
+  askCard = allCards[Math.floor(Math.random()*allCards.length)];
+  askReversed = Math.random() < 0.5;
+  aiText = ''; aiLoading = true;
+  renderAsk();
+
+  const m = askReversed ? askCard.reversed : askCard.upright;
+  fetch('/api/reading', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({question:q,cardName:askCard.name_zh,cardMeaning:m,reversed:askReversed})
+  }).then(r=>r.json()).then(data=>{
+    aiText = data.reading||''; aiLoading = false; renderAsk();
+  }).catch(()=>{ aiLoading = false; renderAsk(); });
+}
+
+// ===== 牌库 =====
+function renderCards() {
+  let list;
+  if(arcanaFilter==='major') list = majorArcana;
+  else if(arcanaFilter==='minor') list = getMinorArcana(suitFilter==='all'?null:suitFilter);
+  else list = allCards;
+  document.getElementById('page-cards').innerHTML = `
+    <div class="filter-row">
+      <button class="filter-btn ${arcanaFilter==='all'?'active':''}" onclick="arcanaFilter='all';suitFilter='all';renderCards()">全部</button>
+      <button class="filter-btn ${arcanaFilter==='major'?'active':''}" onclick="arcanaFilter='major';renderCards()">大牌·22</button>
+      <button class="filter-btn ${arcanaFilter==='minor'?'active':''}" onclick="arcanaFilter='minor';renderCards()">小牌·56</button>
+    </div>
+    ${arcanaFilter==='minor'?`<div class="filter-row">
+      ${[{k:'all',n:'全部'},{k:'Wands',n:'🪄权杖'},{k:'Cups',n:'🏆圣杯'},{k:'Swords',n:'⚔️宝剑'},{k:'Pentacles',n:'🪙星币'}].map(s=>`
+        <button class="filter-btn ${suitFilter===s.k?'active':''}" onclick="suitFilter='${s.k}';renderCards()">${s.n}</button>
+      `).join('')}
+    </div>`:''}
+    ${list.map(c=>`
+      <div class="card-list-item" onclick="showCardDetail(${c.id})">
+        <div class="card-list-emoji">${c.emoji}</div>
+        <div class="card-list-info">
+          <div class="card-list-name">${c.name_zh}</div>
+          <div class="card-list-en">${c.name_en}</div>
+        </div>
+        <div class="card-list-arrow">›</div>
+      </div>
+    `).join('')}
+    <div class="list-count">— ${list.length} 张 —</div>`;
+}
+
+function showCardDetail(id) {
+  const c = allCards.find(x=>x.id===id); if(!c) return;
+  const overlay = document.getElementById('modal-overlay');
+  overlay.innerHTML = `<div class="modal">
+    <div style="text-align:center">
+      <div style="font-size:60px">${c.emoji}</div>
+      <div style="font-size:24px;font-weight:800;color:var(--light);margin-top:8px">${c.name_zh}</div>
+      <div style="font-size:14px;color:var(--sub)">${c.name_en}</div>
+      <div class="card-divider"></div>
+      <div style="font-size:14px;color:#ccc;line-height:1.6">${c.daily_zh}</div>
+    </div>
+    <div class="keywords" style="margin-top:12px">${c.keywords_zh.map(k=>`<span class="keyword">${k}</span>`).join('')}</div>
+    <div class="meaning up"><span class="meaning-label">✨ 正位释义</span>${c.upright}</div>
+    <div class="meaning rev"><span class="meaning-label">🔄 逆位释义</span>${c.reversed}</div>
+    ${c.element?`<div class="meta-row"><span>🌿 ${c.element}</span>${c.planet?`<span>🪐 ${c.planet}</span>`:''}<span>${c.arcana==='major'?'大阿卡纳':'小阿卡纳'}</span>${c.suit_zh?`<span>${c.suit_zh}</span>`:''}</div>`:''}
+    <button class="btn btn-primary" onclick="saveRecord(allCards.find(x=>x.id===${c.id}),'从牌库中挑选');hideModal()">🔮 以此为今日之牌</button>
+    <div class="close" onclick="hideModal()">关闭</div>
+  </div>`;
+  overlay.classList.add('show');
+}
+
+function hideModal(){ document.getElementById('modal-overlay').classList.remove('show'); }
+
+// ===== 记录 =====
+function renderLog() {
+  const grouped = groupByDate(history);
+  const top = getTopCard();
+  const streak = calcStreak();
+  document.getElementById('page-log').innerHTML = `
+    ${history.length>0?`
+    <div style="display:flex;gap:12px;margin-bottom:16px;text-align:center">
+      <div style="flex:1;background:var(--card-bg);border-radius:14px;padding:16px">
+        <div style="font-size:28px;font-weight:800;color:var(--light)">${history.length}</div>
+        <div style="font-size:12px;color:var(--sub);margin-top:4px">总抽牌</div>
+      </div>
+      <div style="flex:1;background:var(--card-bg);border-radius:14px;padding:16px">
+        <div style="font-size:20px;font-weight:800;color:var(--light)">${top||'-'}</div>
+        <div style="font-size:12px;color:var(--sub);margin-top:4px">出现最多</div>
+      </div>
+      <div style="flex:1;background:var(--card-bg);border-radius:14px;padding:16px">
+        <div style="font-size:28px;font-weight:800;color:var(--light)">${streak}天</div>
+        <div style="font-size:12px;color:var(--sub);margin-top:4px">连续记录</div>
+      </div>
+    </div>`:''}
+    ${history.length>0?grouped.map(g=>`
+      <div class="date-group">
+        <div class="date-header">${g.date}</div>
+        ${g.records.map(r=>`
+          <div class="record-item" id="rec-${r.id}">
+            <div class="record-content ${swipeId===r.id?'swiped':''}" id="rec-content-${r.id}">
+              <div style="display:flex;align-items:center;gap:14px" onclick="onRecTap(${r.id},${r.cardId})">
+                <div class="record-emoji">${r.emoji}</div>
+                <div class="record-info">
+                  <div class="record-name">${r.cardName}</div>
+                  ${r.note?`<div class="record-note">"${r.note.slice(0,40)}${r.note.length>40?'...':''}"</div>`:''}
+                  <div class="record-time">${r.time}</div>
+                </div>
+              </div>
+            </div>
+            <div class="record-delete" onclick="deleteRec(${r.id})">删除</div>
+          </div>
+        `).join('')}
+      </div>
+    `).join(''):`<div class="empty"><div class="empty-emoji">🔮</div>还没有抽牌记录</div>`}
+    ${history.length>0?`<div class="export-btn" onclick="exportData()" title="导出">📤</div>`:''}
+    <div class="add-btn" onclick="showPicker()">+</div>
+  `;
+
+  // 滑动事件
+  document.querySelectorAll('.record-item').forEach(item => {
+    let startX = 0, startY = 0;
+    item.addEventListener('touchstart', e => { startX = e.touches[0].clientX; startY = e.touches[0].clientY; });
+    item.addEventListener('touchmove', e => {
+      const dx = e.touches[0].clientX - startX;
+      const dy = Math.abs(e.touches[0].clientY - startY);
+      if(Math.abs(dx)>20 && Math.abs(dx)>dy){
+        swipeId = dx<0 ? parseInt(item.id.replace('rec-','')) : '';
+        renderLog();
+      }
+    });
+  });
+}
+
+function groupByDate(h){const m={};h.forEach(r=>{if(!m[r.date])m[r.date]=[];m[r.date].push(r)});return Object.entries(m).map(([d,r])=>({date:d,records:r}));}
+function getTopCard(){const c={};history.forEach(r=>{c[r.cardName]=(c[r.cardName]||0)+1});let max=0,n='';Object.entries(c).forEach(([k,v])=>{if(v>max){max=v;n=k}});return n;}
+function calcStreak(){if(!history.length)return 0;const d=[...new Set(history.map(r=>r.date))].sort().reverse();let s=1;for(let i=1;i<d.length;i++){if((new Date(d[i-1])-new Date(d[i]))/864e5<=1.5)s++;else break;}return s;}
+
+function onRecTap(recId, cardId){showCardDetail(cardId);}
+function deleteRec(id){if(confirm('确定删除这条记录？')){history=history.filter(r=>r.id!==id);localStorage.setItem('tarot_history',JSON.stringify(history));renderLog();}}
+
+function exportData(){
+  let t='🔮 塔罗的海 · 抽牌记录\n'+new Date().toLocaleDateString('zh-CN')+' 导出\n\n';
+  groupByDate(history).forEach(g=>{t+='【'+g.date+'】\n';g.records.forEach(r=>{t+='  '+r.emoji+' '+r.cardName+(r.note?' — '+r.note:'')+'\n'});t+='\n'});
+  t+='共 '+history.length+' 条记录';
+  navigator.clipboard.writeText(t).then(()=>alert('已复制到剪贴板！\n可粘贴到备忘录或微信收藏保留。'));
+}
+
+// ===== 手动记录 =====
+function showPicker(){
+  const overlay=document.getElementById('modal-overlay');
+  overlay.innerHTML=`<div class="modal">
+    <h3>记录你抽到的牌</h3>
+    <div class="filter-row">
+      <button class="filter-btn active" onclick="pickerFilter('all')">全部</button><button class="filter-btn" onclick="pickerFilter('major')">大牌</button>
+      <button class="filter-btn" onclick="pickerFilter('Wands')">🪄权杖</button><button class="filter-btn" onclick="pickerFilter('Cups')">🏆圣杯</button>
+      <button class="filter-btn" onclick="pickerFilter('Swords')">⚔️宝剑</button><button class="filter-btn" onclick="pickerFilter('Pentacles')">🪙星币</button>
+    </div>
+    <div id="picker-list" style="max-height:50vh;overflow-y:auto"></div>
+    <div class="close" onclick="hideModal()">取消</div>
+  </div>`;
+  overlay.classList.add('show');
+  pickerFilter('all');
+}
+function pickerFilter(f){
+  let list; if(f==='major')list=majorArcana;else if(['Wands','Cups','Swords','Pentacles'].includes(f))list=getMinorArcana(f);else list=allCards;
+  document.getElementById('picker-list').innerHTML=list.map(c=>`
+    <div class="picker-card" onclick="pickCard(${c.id})"><div class="picker-emoji">${c.emoji}</div><div class="picker-name">${c.name_zh}</div><div style="color:var(--sub);font-size:13px">${c.name_en}</div></div>
+  `).join('');
+}
+function pickCard(id){
+  const c=allCards.find(x=>x.id===id);if(!c)return;
+  const note=prompt('📝 感悟（可选）：','')||'';
+  const date=prompt('📅 日期（YYYY-MM-DD，默认今天）：',new Date().toISOString().slice(0,10))||new Date().toISOString().slice(0,10);
+  const rec={id:Date.now(),cardId:c.id,cardName:c.name_zh,cardNameEn:c.name_en,emoji:c.emoji,date,time:'手动补录',note};
+  history=[rec,...history].slice(0,365);localStorage.setItem('tarot_history',JSON.stringify(history));
+  hideModal();renderLog();
+}
+
+// ===== 初始化（等 DOM 和数据加载完）=====
+document.addEventListener('DOMContentLoaded', function() {
+  document.getElementById('modal-overlay').addEventListener('click',function(e){if(e.target===this)hideModal();});
+  renderDaily();
+  var loading = document.getElementById('loading');
+  if (loading) loading.style.display = 'none';
+});
+// 兜底
+if (document.readyState === 'complete' || document.readyState === 'interactive') {
+  setTimeout(function() {
+    renderDaily();
+    var loading = document.getElementById('loading');
+    if (loading) loading.style.display = 'none';
+  }, 50);
+}
+// 兜底：如果 DOM 已经加载完
+if (document.readyState === 'complete' || document.readyState === 'interactive') {
+  setTimeout(function() { renderDaily(); }, 50);
+}
+</script>
+<div class="modal-overlay" id="modal-overlay"></div>
+</body>
+</html>
