@@ -255,7 +255,7 @@ function renderAsk() {
       </div>
       ${aiLoading ? `<div class="ai-loading">🔮 AI 正在为你解读...</div>` : ''}
       ${aiText ? `<div class="ai-reading"><div class="ai-label">🤖 AI 塔罗解读</div>${aiText}</div>` : ''}
-      <button class="btn btn-primary" id="askSaveBtn" onclick="var btn=document.getElementById('askSaveBtn');btn.textContent='✅ 已保存';btn.style.background='#00B894';saveRecord(askCard,(q?'「'+q+'」 — ':'')+askCard.name_zh+(askReversed?'(逆位)':'(正位)')+(aiText?' [AI]':''))">💾 保存</button>
+      <button class="btn btn-primary" id="askSaveBtn" onclick="var t=document.getElementById('askQuestion'),q=t?t.value:'';this.textContent='✅ 已保存';this.style.background='#00B894';saveRecord(askCard,(q?'「'+q+'」 — ':'')+askCard.name_zh+(askReversed?'(逆位)':'(正位)')+(aiText?' [AI]':''))">💾 保存</button>
       <button class="btn btn-ghost" onclick="askCard=null;aiText='';aiLoading=false;renderAsk();renderLog()">🔄 再问一次</button>`;
   }
 }
