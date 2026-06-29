@@ -266,24 +266,14 @@ function askDraw() {
   aiText = ''; aiLoading = true;
   renderAsk();
 
-  const m = askReversed ? askCard.reversed : askCard.upright;
-  const pos = askReversed ? '逆位' : '正位';
-  const KEY = 'sk-a6caef761feb441c9622f1c39f07d1b5';
-
-  const doFetch = (url, headers) => fetch(url, {
-    method:'POST', headers,
-    body:JSON.stringify({
-      model:'deepseek-chat', max_tokens:500, temperature:0.8,
-      messages:[
-        {role:'system',content:'你是塔罗占卜师。结合牌义和用户问题解读。先解释牌在'+pos+'的含义，再给针对性解读。200字以内。最后一句建议。'},
-        {role:'user',content:'牌：'+askCard.name_zh+'（'+pos+'）\n含义：'+m+'\n问题：'+(q||'最近困惑的事')+'\n请解读。'}
-      ]
-    })
-  }).then(function(r){return r.json()}).then(function(d){aiText=d.choices[0].message.content.trim();aiLoading=false;renderAsk()});
-
-  doFetch('/api/reading', {'Content-Type':'application/json'})
-    .catch(function(){return doFetch('https://api.deepseek.com/v1/chat/completions',{'Content-Type':'application/json','Authorization':'Bearer '+KEY})})
-    .catch(function(){aiLoading=false;renderAsk()});
+  // 通过 Vercel API 代理（支持跨域）
+  fetch('https://deploy-tau-seven-22.vercel.app/api/reading', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({question:q,cardName:askCard.name_zh,cardMeaning:m,reversed:askReversed})
+  }).then(function(r){return r.json()}).then(function(d){
+    aiText = d.reading||''; aiLoading = false; renderAsk();
+  }).catch(function(){ aiLoading = false; renderAsk(); });
 }
 
 // ===== 牌库 =====
