@@ -255,13 +255,13 @@ function renderAsk() {
       </div>
       ${aiLoading ? `<div class="ai-loading">🔮 AI 正在为你解读...</div>` : ''}
       ${aiText ? `<div class="ai-reading"><div class="ai-label">🤖 AI 塔罗解读</div>${aiText}</div>` : ''}
-      <button class="btn btn-primary" id="askSaveBtn" onclick="saveAskCard()">💾 保存</button>
+      <button class="btn btn-primary" id="askSaveBtn" ontouchend="saveAskCard()" onclick="saveAskCard()" style="-webkit-tap-highlight-color:transparent;touch-action:manipulation">💾 保存</button>
       <button class="btn btn-ghost" onclick="askCard=null;aiText='';aiLoading=false;renderAsk();renderLog()">🔄 再问一次</button>`;
   }
 }
 
 function saveAskCard() {
-  if (!askCard || typeof askCard !== 'object') { alert('未抽牌'); return; }
+  if (!askCard || typeof askCard !== 'object') return;
   try {
     var t = document.getElementById('askQuestion');
     var q = t ? t.value : '';
@@ -274,12 +274,11 @@ function saveAskCard() {
       note: note
     };
     history = [rec].concat(history).slice(0,365);
-    try { localStorage.setItem('tarot_history', JSON.stringify(history)); } catch(e) { alert('存储失败'); return; }
+    localStorage.setItem('tarot_history', JSON.stringify(history));
     var btn = document.getElementById('askSaveBtn');
     if (btn) { btn.textContent = '✅ 已保存'; btn.style.background = '#00B894'; }
     renderLog();
-    alert('已保存！切到「记录」查看');
-  } catch(e) { alert('出错：'+e.message); }
+  } catch(e) {}
 }
 
 function askDraw() {
