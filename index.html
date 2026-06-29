@@ -255,26 +255,45 @@ function renderAsk() {
       </div>
       ${aiLoading ? `<div class="ai-loading">🔮 AI 正在为你解读...</div>` : ''}
       ${aiText ? `<div class="ai-reading"><div class="ai-label">🤖 AI 塔罗解读</div>${aiText}</div>` : ''}
-      <button class="btn btn-primary" id="askSaveBtn" onclick="var t=document.getElementById('askQuestion'),q=t?t.value:'';this.textContent='✅ 已保存';this.style.background='#00B894';saveRecord(askCard,(q?'「'+q+'」 — ':'')+askCard.name_zh+(askReversed?'(逆位)':'(正位)')+(aiText?' [AI]':''))">💾 保存</button>
+      <button class="btn btn-primary" id="askSaveBtn" onclick="saveAskCard()">💾 保存</button>
       <button class="btn btn-ghost" onclick="askCard=null;aiText='';aiLoading=false;renderAsk();renderLog()">🔄 再问一次</button>`;
   }
 }
 
+function saveAskCard() {
+  if (!askCard) return;
+  var t = document.getElementById('askQuestion');
+  var q = t ? t.value : '';
+  var note = (q ? '「'+q+'」 — ' : '') + askCard.name_zh + (askReversed?'(逆位)':'(正位)');
+  var btn = document.getElementById('askSaveBtn');
+  if (btn) { btn.textContent = '✅ 已保存'; btn.style.background = '#00B894'; }
+  saveRecord(askCard, note, function() {
+    // saved callback - nothing extra needed
+  });
+}
+
 function askDraw() {
-  const q = document.getElementById('askQuestion')?.value || '';
+  var q = document.getElementById('askQuestion');
+  var question = q ? q.value : '';
   askCard = allCards[Math.floor(Math.random()*allCards.length)];
   askReversed = Math.random() < 0.5;
   aiText = ''; aiLoading = true;
   renderAsk();
 
-  // 通过 Vercel API 代理（支持跨域）
+  var meaning = askReversed ? askCard.reversed : askCard.upright;
   fetch('https://deploy-tau-seven-22.vercel.app/api/reading', {
     method:'POST',
     headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({question:q,cardName:askCard.name_zh,cardMeaning:m,reversed:askReversed})
+    body:JSON.stringify({question:question,cardName:askCard.name_zh,cardMeaning:meaning,reversed:askReversed})
   }).then(function(r){return r.json()}).then(function(d){
-    aiText = d.reading||''; aiLoading = false; renderAsk();
-  }).catch(function(){ aiText = '（AI 解读暂不可用）\n\n'+askCard.daily_zh; aiLoading = false; renderAsk(); });
+    aiText = d.reading||'';
+    aiLoading = false;
+    renderAsk();
+  }).catch(function(){
+    aiText = askCard.daily_zh;
+    aiLoading = false;
+    renderAsk();
+  });
 }
 
 // ===== 牌库 =====
