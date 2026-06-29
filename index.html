@@ -274,7 +274,7 @@ function askDraw() {
     body:JSON.stringify({question:q,cardName:askCard.name_zh,cardMeaning:m,reversed:askReversed})
   }).then(function(r){return r.json()}).then(function(d){
     aiText = d.reading||''; aiLoading = false; renderAsk();
-  }).catch(function(){ aiLoading = false; renderAsk(); });
+  }).catch(function(){ aiText = '（AI 解读暂不可用）\n\n'+askCard.daily_zh; aiLoading = false; renderAsk(); });
 }
 
 // ===== 牌库 =====
