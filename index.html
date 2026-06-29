@@ -290,41 +290,28 @@ function askDraw() {
   renderAsk();
 
   var meaning = askReversed ? askCard.reversed : askCard.upright;
-  var ctrl = new AbortController();
-  var timer = setTimeout(function(){ ctrl.abort(); }, 8000);
+  var KEY = 'sk-a6caef761feb441c9622f1c39f07d1b5';
+  var pos = askReversed ? '逆位' : '正位';
 
-  fetch('https://deploy-tau-seven-22.vercel.app/api/reading', {
+  // 8秒后强制结束
+  var done = false;
+  setTimeout(function(){ if(!done){ done=true; aiText=askCard.daily_zh; aiLoading=false; renderAsk(); } }, 8000);
+
+  // 直连 DeepSeek
+  fetch('https://api.deepseek.com/v1/chat/completions', {
     method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({question:question,cardName:askCard.name_zh,cardMeaning:meaning,reversed:askReversed}),
-    signal: ctrl.signal
-  }).then(function(r){ clearTimeout(timer); return r.json(); }).then(function(d){
-    aiText = d.reading||'';
-    aiLoading = false;
-    renderAsk();
+    headers:{'Content-Type':'application/json','Authorization':'Bearer '+KEY},
+    body:JSON.stringify({
+      model:'deepseek-chat', max_tokens:500, temperature:0.8,
+      messages:[
+        {role:'system',content:'你是塔罗占卜师。结合牌义和用户问题解读。先解释牌在'+pos+'的含义，再给针对性解读。200字以内。最后一句建议。'},
+        {role:'user',content:'牌：'+askCard.name_zh+'（'+pos+'）\n含义：'+meaning+'\n问题：'+(question||'最近困惑的事')+'\n请解读。'}
+      ]
+    })
+  }).then(function(r){return r.json()}).then(function(d){
+    if(!done){ done=true; aiText=d.choices[0].message.content.trim(); aiLoading=false; renderAsk(); }
   }).catch(function(){
-    clearTimeout(timer);
-    // Vercel 挂了 → 直连 DeepSeek
-    var KEY = 'sk-a6caef761feb441c9622f1c39f07d1b5';
-    var pos = askReversed ? '逆位' : '正位';
-    return fetch('https://api.deepseek.com/v1/chat/completions', {
-      method:'POST',
-      headers:{'Content-Type':'application/json','Authorization':'Bearer '+KEY},
-      body:JSON.stringify({
-        model:'deepseek-chat', max_tokens:500, temperature:0.8,
-        messages:[
-          {role:'system',content:'你是塔罗占卜师。结合牌义和用户问题解读。先解释牌在'+pos+'的含义，再给针对性解读。200字以内。最后一句建议。'},
-          {role:'user',content:'牌：'+askCard.name_zh+'（'+pos+'）\n含义：'+meaning+'\n问题：'+(question||'最近困惑的事')+'\n请解读。'}
-        ]
-      })
-    }).then(function(r){return r.json()}).then(function(d){
-      aiText = d.choices[0].message.content.trim();
-    }).catch(function(){
-      aiText = askCard.daily_zh;
-    }).then(function(){
-      aiLoading = false;
-      renderAsk();
-    });
+    if(!done){ done=true; aiText=askCard.daily_zh; aiLoading=false; renderAsk(); }
   });
 }
 
