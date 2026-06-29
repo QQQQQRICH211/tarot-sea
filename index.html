@@ -261,15 +261,24 @@ function renderAsk() {
 }
 
 function saveAskCard() {
-  if (!askCard) return;
-  var t = document.getElementById('askQuestion');
-  var q = t ? t.value : '';
-  var note = (q ? '「'+q+'」 — ' : '') + askCard.name_zh + (askReversed?'(逆位)':'(正位)');
-  var btn = document.getElementById('askSaveBtn');
-  if (btn) { btn.textContent = '✅ 已保存'; btn.style.background = '#00B894'; }
-  saveRecord(askCard, note, function() {
-    // saved callback - nothing extra needed
-  });
+  if (!askCard || typeof askCard !== 'object') return;
+  try {
+    var t = document.getElementById('askQuestion');
+    var q = t ? t.value : '';
+    var note = (q ? '「'+q+'」 — ':'') + askCard.name_zh + (askReversed?'(逆位)':'(正位)');
+    var rec = {
+      id: Date.now(), cardId: askCard.id, cardName: askCard.name_zh,
+      cardNameEn: askCard.name_en, emoji: askCard.emoji,
+      date: new Date().toISOString().slice(0,10),
+      time: new Date().toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'}),
+      note: note
+    };
+    history = [rec].concat(history).slice(0,365);
+    localStorage.setItem('tarot_history', JSON.stringify(history));
+    var btn = document.getElementById('askSaveBtn');
+    if (btn) { btn.textContent = '✅ 已保存'; btn.style.background = '#00B894'; }
+    renderLog();
+  } catch(e) {}
 }
 
 function askDraw() {
